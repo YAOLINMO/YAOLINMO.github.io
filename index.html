@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>赛博空间站</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  <style>
+    /* 新增的霓虹灯效果 */
+    .cyber-header h1 {
+      text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
+      animation: glow 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #00f0ff; }
+      to { text-shadow: 0 0 20px #00f0ff, 0 0 30px #00f0ff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cyber-container">
+    <!-- 增强的头部区域 -->
+    <header class="cyber-header">
+      <div class="avatar-container">
+        <img src="{{ url_for('static', filename='images/avatar.jpg') }}" class="cyber-avatar">
+        <div class="online-status"></div>
+      </div>
+      <h1 class="glitch" data-text="赛博空间站">赛博空间站</h1>
+      <p class="cyber-subtitle">数字世界的核心枢纽</p>
+      <div class="cyber-stats">
+        <span>用户: {{ current_user }}</span>
+        <span>应用: {{ apps|length }}</span>
+        <span>媒体: {{ media_files|length }}</span>
+      </div>
+    </header>
+
+    <!-- 消息闪现区增强 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="cyber-alert-container">
+          {% for category, message in messages %}
+            <div class="cyber-alert {{ category }}">
+              <span class="alert-icon">⚠️</span>
+              <p>{{ message }}</p>
+              <span class="alert-close">&times;</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- 增强的应用下载区 -->
+    <section class="cyber-section app-section">
+      <div class="section-header">
+        <h2><span class="neon-accent">#</span> 应用中心</h2>
+        <div class="section-actions">
+          <button class="cyber-button small" id="refresh-apps">
+            <span class="icon">⟳</span> 刷新
+          </button>
+        </div>
+      </div>
+      
+      <form method="post" action="/upload/app" enctype="multipart/form-data" class="cyber-form upload-form">
+        <div class="file-upload-wrapper">
+          <input type="file" name="file" id="app-upload" accept=".apk,.ipa,.exe,.dmg,.deb" required>
+          <label for="app-upload" class="file-upload-label">
+            <span class="icon">📁</span>
+            <span class="text">选择应用文件</span>
+          </label>
+        </div>
+        <button type="submit" class="cyber-button primary">
+          <span class="icon">↑</span> 上传应用
+        </button>
+      </form>
+      
+      {% if apps %}
+      <div class="cyber-grid">
+        {% for app in apps %}
+        <div class="cyber-card app-card">
+          <div class="file-icon" data-type="{{ app.type|upper }}"></div>
+          <div class="file-info">
+            <h3 title="{{ app.name }}">{{ app.name|truncate(20) }}</h3>
+            <div class="file-meta">
+              <span class="size">{{ app.size }}</span>
+              <span class="date">{{ app.date }}</span>
+            </div>
+            <div class="file-actions">
+              <a href="{{ url_for('download', filetype='app', filename=app.name) }}" 
+                 class="cyber-download-btn">
+                <span class="icon">↓</span> 下载
+              </a>
+              <button class="cyber-small-btn info" onclick="showDetails('{{ app.name }}')">
+                <span class="icon">i</span> 详情
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <img src="{{ url_for('static', filename='images/empty-apps.png') }}" alt="无应用">
+        <p>暂无应用文件，请上传</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- 增强的媒体库 -->
+
+
+
+    <section class="cyber-section media-section">
+      <div class="section-header">
+        <h2><span class="neon-accent">></span> 媒体库</h2>
+        <div class="section-actions">
+          <div class="view-toggle">
+            <button class="cyber-button small active" data-view="grid">网格</button>
+            <button class="cyber-button small" data-view="list">列表</button>
+          </div>
+        </div>
+      </div>
+      
+      <form method="post" action="/upload/media" enctype="multipart/form-data" class="cyber-form upload-form">
+        <div class="file-upload-wrapper">
+          <input type="file" name="file" id="media-upload" accept="video/*,image/*" required multiple>
+          <label for="media-upload" class="file-upload-label">
+            <span class="icon">🎬</span>
+            <span class="text">选择媒体文件</span>
+          </label>
+        </div>
+        <button type="submit" class="cyber-button primary">
+          <span class="icon">↑</span> 上传媒体
+        </button>
+      </form>
+      
+      {% if media_files %}
+      <div class="media-grid" id="media-view">
+        {% for item in media_files %}
+          {% if item.type in ['mp4','webm','ogg'] %}
+            <div class="media-card video-card">
+              <div class="media-preview">
+                <video>
+                  <source src="{{ url_for('static', filename='videos/' + item.name) }}" 
+                          type="video/{{ item.type }}">
+                </video>
+                <button class="play-button">▶</button>
+              </div>
+              <div class="media-meta">
+                <h3 title="{{ item.name }}">{{ item.name|truncate(25) }}</h3>
+                <div class="media-info">
+                  <span class="type">{{ item.type|upper }}</span>
+                  <span class="size">{{ item.size }}</span>
+                </div>
+                <div class="media-actions">
+                  <a href="{{ url_for('download', filetype='media', filename=item.name) }}"
+                     class="cyber-small-btn">
+                    <span class="icon">↓</span> 下载
+                  </a>
+                  <button class="cyber-small-btn" onclick="previewMedia('{{ item.name }}')">
+                    <span class="icon">👁️</span> 预览
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="media-card image-card">
+              <div class="media-preview">
+                <img src="{{ url_for('static', filename='videos/' + item.name) }}" 
+                     alt="{{ item.name }}" loading="lazy">
+                <button class="view-button">🔍</button>
+              </div>
+              <div class="media-meta">
+                <h3 title="{{ item.name }}">{{ item.name|truncate(25) }}</h3>
+                <div class="media-info">
+                  <span class="type">{{ item.type|upper }}</span>
+                  <span class="size">{{ item.size }}</span>
+                </div>
+                <div class="media-actions">
+                  <a href="{{ url_for('download', filetype='media', filename=item.name) }}"
+                     class="cyber-small-btn">
+                    <span class="icon">↓</span> 下载
+                  </a>
+                  <button class="cyber-small-btn" onclick="previewMedia('{{ item.name }}')">
+                    <span class="icon">👁️</span> 预览
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <img src="{{ url_for('static', filename='images/empty-media.png') }}" alt="无媒体">
+        <p>暂无媒体文件，请上传</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="cyber-footer">
+      <p>© 2025 赛博空间站 | 版本 1.0.0</p>
+      <div class="footer-links">
+        <a href="#">使用条款</a>
+        <a href="#">隐私政策</a>
+        <a href="#">联系我们</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // 播放视频预览
+    document.querySelectorAll('.play-button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const video = e.target.closest('.media-preview').querySelector('video');
+        video.requestFullscreen();
+        video.play();
+      });
+    });
+
+    // 切换视图模式
+    document.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('media-view').className = `media-${btn.dataset.view}`;
+        document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // 刷新应用列表
+    document.getElementById('refresh-apps').addEventListener('click', () => {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>
